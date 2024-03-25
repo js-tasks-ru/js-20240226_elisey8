@@ -83,34 +83,49 @@ export default class SortableTable {
 
   createRowTableTemplate(item) {
     return this.headerConfig.map((headerItem, n) => {
-      return `
+        return `
           <div class="sortable-table__cell">${item[this.headerConfig[n].id]}</div>
-	      `;}
+	      `;
+      }
     ).join('');
   }
 
+  sortStringsAscending(arr) {
+    const arrCopy = [...arr];
+    arrCopy.sort((a, b) =>
+      a.title.localeCompare(b.title, ["ru", "en"], {caseFirst: "upper"})
+    );
+    return arrCopy;
+  }
+
+  sortStringsDescending(arr) {
+    const arrCopy = [...arr];
+    arrCopy.sort((a, b) =>
+      b.title.localeCompare(a.title, ["ru", "en"], {caseFirst: "upper"})
+    );
+    return arrCopy;
+  }
+
+  sortedByTitle(data, param = "asc") {
+    const asc = this.sortStringsAscending(data);
+    const desc = this.sortStringsDescending(data);
+    return param === "desc" ? desc : asc;
+  }
+
+  sortedByNumbers(data, param = "asc", fieldValue) {
+    const asc = data.slice().sort((a, b) => a[fieldValue] - b[fieldValue]);
+    const desc = data.slice().sort((a, b) => b[fieldValue] - a[fieldValue]);
+    return param === "desc" ? desc : asc;
+  }
+
   sort(fieldValue, orderValue) {
-    const direction = orderValue === 'asc' ? 1 : -1;
+    const newData =
+      fieldValue === "title"
+        ? this.sortedByTitle(this.data, orderValue)
+        : this.sortedByNumbers(this.data, orderValue, fieldValue);
 
-    if (["title", "quantity", "price", "sales"].includes(fieldValue))
-    {
-      if (fieldValue === "title") {
-        this.sortedData = this.data.sort((a, b) => {
-          return direction * (a[fieldValue]).localeCompare((b[fieldValue]), ["ru", "en"], { caseFirst: 'upper'});
-        });
-      }
-
-      else {
-        this.sortedData = this.data.sort((a, b) => {
-          return direction * (a[fieldValue] - b[fieldValue]);
-        });
-      }
-
-      this.data = this.sortedData;
-      this.subElements.body.innerHTML = this.createBodyTemplate();
-    }
-
-    this.update(this.sortedData);
+    this.data = newData;
+    this.update(newData);
   }
 
   update(newData) {
@@ -122,7 +137,7 @@ export default class SortableTable {
     this.element.remove();
   }
 
-  destroy () {
+  destroy() {
     this.remove();
   }
 
