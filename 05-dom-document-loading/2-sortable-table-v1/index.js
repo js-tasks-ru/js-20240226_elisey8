@@ -120,7 +120,7 @@ export default class SortableTable {
 
   sort(fieldValue, orderValue) {
     const newData =
-      fieldValue === "title"
+      typeof this.data[0][fieldValue] === "string"
         ? this.sortedByTitle(this.data, orderValue)
         : this.sortedByNumbers(this.data, orderValue, fieldValue);
 
