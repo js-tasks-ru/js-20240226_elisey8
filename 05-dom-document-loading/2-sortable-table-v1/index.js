@@ -1,93 +1,86 @@
 export default class SortableTable {
-
   constructor(headerConfig = [], data = []) {
     this.headerConfig = headerConfig;
     this.data = data;
-
-    this.element = this.createElement(this.createBodyTemplate());
-
-    this.subElements = {
-      body: this.element.querySelector('[data-element="body"]'),
-      header: this.element.querySelector('[data-element="header"]')
-    };
+    this.element = this.createElement(this.createTemplate(this.data));
+    this.parent = document.querySelector("#root");
   }
-
   createElement(template) {
     const element = document.createElement("div");
-
-    element.innerHTML = `
-      <div data-element="productsContainer" class="products-list__container">
-        <div class="sortable-table">
-	    ${this.createHeaderTemplate()}
-	    ${template}
-        </div>
-      </div>
-  	`;
+    element.innerHTML = template;
     return element.firstElementChild;
   }
-
-  createHeaderTemplate() {
+  createTemplate(data, orderValue, fieldValue) {
     return `
-	    <div data-element="header" class="sortable-table__header sortable-table__row">
-         ${this.createHeaderTableTemplate()}
-        </div>
-	  `;
-  }
-
-  createBodyTemplate() {
-    return `
-      <div data-element="body" class="sortable-table__body">
-       ${this.createBodyTableTemplate()}
-      </div>
-      <div data-element="loading" class="loading-line sortable-table__loading-line"></div>
-        <div data-element="emptyPlaceholder" class="sortable-table__empty-placeholder">
-          <div>
-           <p>No products satisfies your filter criteria</p>
-           <button type="button" class="button-primary-outline">Reset all filters</button>
+      <div data-element="productsContainer" class="products-list__container">
+        <div  class="sortable-table">
+          ${this.createHeaderTemplate(
+      this.headerConfig,
+      orderValue,
+      fieldValue
+    )}
+          <div data-element="body" class="sortable-table__body">
+            ${this.createBodyTemplate(data)}
           </div>
+          <div data-element="loading" class="loading-line sortable-table__loading-line"></div>
         </div>
+      </div>
     `;
   }
+  createBodyTemplate(data) {
+    return data
+      .map((item) => {
+        const { images, title, quantity, price, sales, status, id } = item;
+        return this.createItemTemplate(
+          images?.[0]?.url,
+          title,
+          quantity,
+          price,
+          sales,
+          status,
+          id
+        );
+      })
+      .join("");
+  }
 
-  createArrowTemplate() {
+  createItemTemplate(image, title, quantity, price, sales, status, link) {
     return `
-        <span data-element="arrow" class="sortable-table__sort-arrow">
-          <span class="sort-arrow"></span>
-        </span>
-      `;
+      <a href="/products/${link}" class="sortable-table__row">
+        ${
+      image
+        ? `<div class="sortable-table__cell"><img class="sortable-table-image" alt="Image" ></div>`
+        : ""
+    }
+      ${title ? `<div class="sortable-table__cell">${title}</div>` : ""}
+      ${quantity ? `<div class="sortable-table__cell">${quantity}</div>` : ""}
+      ${price ? `<div class="sortable-table__cell">${price}</div>` : ""}
+      ${sales ? `<div class="sortable-table__cell">${sales}</div>` : ""}
+      ${!sales ? `<div class="sortable-table__cell">${status || 0}</div>` : ""}
+      </a>
+    `;
   }
-
-  createHeaderTableTemplate() {
-    return this.headerConfig.map((item) => {
-
-      item.id.includes('title')
-        ? this.arrow = this.createArrowTemplate()
-        : this.arrow = "";
-
-      return `
-         <div class="sortable-table__cell" data-id="${item.id}" data-sortable="${item.sortable}" 'data-order="asc"'>
-          <span>${item.title}</span>
-          ${this.arrow}
-        </div>
-     `;
-    }).join('');
-  }
-
-  createBodyTableTemplate() {
-    return this.data.map((item) => `
-        <a href="/products/3d-ochki-epson-elpgs03" class="sortable-table__row">
-          ${this.createRowTableTemplate(item)}
-        </a>
-      `).join('');
-  }
-
-  createRowTableTemplate(item) {
-    return this.headerConfig.map((headerItem, n) => {
+  createHeaderTemplate(headerData, orderValue, fieldValue) {
+    return `
+      <div data-element="header" class="sortable-table__header sortable-table__row">
+        ${headerData
+      .map((item) => {
+        const { id, sortable, title } = item;
+        const order = fieldValue === id ? orderValue : "";
         return `
-          <div class="sortable-table__cell">${item[this.headerConfig[n].id]}</div>
-	      `;
-      }
-    ).join('');
+              <div class="sortable-table__cell" data-id="${id}" data-sortable="${sortable}" data-order="${order}">
+                <span>${title}</span>
+                ${
+          sortable
+            ? `<span data-element="arrow" class="sortable-table__sort-arrow"><span class="sort-arrow"></span></span>`
+            : ""
+        }
+              </div>
+            `;
+      })
+      .join("")}
+      </div>
+    `;
   }
 
   sortStringsAscending(arr) {
@@ -117,29 +110,25 @@ export default class SortableTable {
     const desc = data.slice().sort((a, b) => b[fieldValue] - a[fieldValue]);
     return param === "desc" ? desc : asc;
   }
-
   sort(fieldValue, orderValue) {
     const newData =
-      typeof this.data[0][fieldValue] === "string"
+      fieldValue === "title"
         ? this.sortedByTitle(this.data, orderValue)
         : this.sortedByNumbers(this.data, orderValue, fieldValue);
-
     this.data = newData;
-    this.update(newData);
+    this.updateBody(this.subElements.body, newData);
   }
-
-  update(newData) {
-    this.data = newData;
-    this.subElements.body.innerHTML = this.createBodyTableTemplate();
+  updateBody(bodyElement, newData) {
+    const newBody = this.createBodyTemplate(newData);
+    bodyElement.innerHTML = newBody;
   }
-
-  remove() {
+  destroy() {
     this.element.remove();
   }
-
-  destroy() {
-    this.remove();
+  get subElements() {
+    return {
+      body: this.element.querySelector('[data-element="body"]'),
+      header: this.element.querySelector('[data-element="header"]'),
+    };
   }
-
 }
-
